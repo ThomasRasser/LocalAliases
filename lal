@@ -1,0 +1,90 @@
+#!/bin/bash
+
+# This script is used to create short local aliases for long commands.
+# Read the README.md file for more information.
+
+# -----------------------------------------------
+
+# Usage: lal [ALIAS [PARENT_DIR_DEPTH]]
+
+# -----------------------------------------------
+
+# Check if 0-2 arguments has been passed
+# If not, print usage and exit
+if [ $# -gt 2 ]; then
+    echo "Usage: lal [ALIAS [PARENT_DIR_DEPTH]]"
+    exit 1
+fi
+
+# Check if 0 arguments have been passed
+# Check if there is a file in the current directory
+# named "local_aliases.yaml" or ".local_aliases.yaml"
+# If not, ask the user if he wants to create one
+if [ $# -eq 0 ]; then
+    if [ ! -f "local_aliases.yaml" ] && [ ! -f ".local_aliases.yaml" ]; then
+        echo "No local aliases file found in the current directory."
+        echo "Do you want to create one? (y/n)"
+        read -r answer
+        if [ "$answer" = "y" ]; then
+            touch "local_aliases.yaml"
+            echo "Created local_aliases.yaml"
+            exit 0
+        else
+            exit 1
+        fi
+    elif
+        [ -f "local_aliases.yaml" ]; then
+            LOCAL_ALIAS_FILE_NAME="local_aliases.yaml"
+        elif
+            [ -f ".local_aliases.yaml" ]; then
+            LOCAL_ALIAS_FILE_NAME=".local_aliases.yaml"
+        fi
+        echo "$LOCAL_ALIAS_FILE_NAME already exists in the current directory"
+        exit 0
+    fi
+      
+# Check if PARANT_DIR_DEPTH is set
+if [ ! -z "$2" ]; then
+    PARENT_DIR_DEPTH=$2
+else
+    PARENT_DIR_DEPTH=0
+fi
+
+# Check if in the current directory (or in the parent directories if specified)
+# there is a file named "local_aliases.yaml" or ".local_aliases.yaml"
+# If not, exit
+LOCAL_ALIAS_FILE_PATH=""
+for (( i=0; i<=$PARENT_DIR_DEPTH; i++ )); do
+    if [ -f "local_aliases.yaml" ]; then            
+        LOCAL_ALIAS_FILE_PATH="$(pwd)/local_aliases.yaml"
+        break
+    elif [ -f ".local_aliases.yaml" ]; then
+        LOCAL_ALIAS_FILE_PATH="$(pwd)/.local_aliases.yaml"
+        break
+    fi
+    # Go to the parent directory, if it exists
+    # If not, exit the loop
+    if [ -d "../" ]; then
+        cd ..
+    else
+        break
+    fi
+done
+
+# If the file is not found, exit
+if [ -z "$LOCAL_ALIAS_FILE_PATH" ]; then
+    echo "No local aliases file found in the current directory or in the parent directories."
+    exit 1
+fi
+
+# Check if the alias exists in the file
+# If not, print error and exit
+if ! grep -q "^$1:" $LOCAL_ALIAS_FILE_PATH; then
+    echo "Alias \"$1\" not found"
+    exit 1
+fi
+
+# Get the command associated with the alias
+# and execute it
+command=$(grep "^$1:" $LOCAL_ALIAS_FILE_PATH | cut -d: -f2)
+eval $command
